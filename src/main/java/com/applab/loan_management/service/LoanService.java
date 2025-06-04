@@ -3,6 +3,8 @@ package com.applab.loan_management.service;
 import com.applab.loan_management.dto.CreateLoanRequest;
 import com.applab.loan_management.dto.LoanListResponse;
 import com.applab.loan_management.dto.LoanInstallmentResponse;
+import com.applab.loan_management.dto.PayLoanRequest;
+import com.applab.loan_management.dto.PayLoanResponse;
 import com.applab.loan_management.entity.Customer;
 import com.applab.loan_management.entity.Loan;
 import com.applab.loan_management.entity.LoanInstallment;
@@ -12,6 +14,9 @@ import com.applab.loan_management.exception.InsufficientCreditLimitException;
 import com.applab.loan_management.exception.InvalidParameterException;
 import com.applab.loan_management.exception.LoanNotFoundException;
 import com.applab.loan_management.exception.LoanDataAccessException;
+import com.applab.loan_management.exception.LoanAlreadyPaidException;
+import com.applab.loan_management.exception.InvalidPaymentAmountException;
+import com.applab.loan_management.exception.NoPayableInstallmentsException;
 import com.applab.loan_management.repository.CustomerRepository;
 import com.applab.loan_management.repository.LoanRepository;
 import lombok.RequiredArgsConstructor;
@@ -228,5 +233,111 @@ public class LoanService {
                 .isPaid(installment.getIsPaid())
                 .installmentNumber(installmentNumber)
                 .build();
+    }
+
+    @Transactional
+    public PayLoanResponse payLoan(Long loanId, PayLoanRequest request) {
+        // Validate loanId parameter
+        if (loanId == null || loanId <= 0) {
+            throw new InvalidParameterException("loanId", "must be a positive number");
+        }
+
+        try {
+            // Verify loan exists and fetch with installments and customer
+            Loan loan = loanRepository.findById(loanId)
+                    .orElseThrow(() -> new LoanNotFoundException(loanId));
+
+            // Check if loan is already fully paid
+            if (Boolean.TRUE.equals(loan.getIsPaid())) {
+                throw new LoanAlreadyPaidException(loanId);
+            }
+
+            // Get unpaid installments sorted by due date (earliest first)
+            LocalDate currentDate = LocalDate.now();
+            LocalDate maxPayableDate = currentDate.plusMonths(3);
+
+            List<LoanInstallment> payableInstallments = loan.getInstallments().stream()
+                    .filter(installment -> !installment.getIsPaid())
+                    .filter(installment -> !installment.getDueDate().isAfter(maxPayableDate))
+                    .sorted((i1, i2) -> i1.getDueDate().compareTo(i2.getDueDate()))
+                    .collect(Collectors.toList());
+
+            if (payableInstallments.isEmpty()) {
+                throw new NoPayableInstallmentsException(loanId);
+            }
+
+            // Check if payment amount can cover at least one installment
+            BigDecimal remainingAmount = request.getAmount();
+            BigDecimal firstInstallmentAmount = payableInstallments.get(0).getAmount();
+            
+            if (remainingAmount.compareTo(firstInstallmentAmount) < 0) {
+                throw new InvalidPaymentAmountException(remainingAmount, firstInstallmentAmount);
+            }
+
+            // Process payments
+            int installmentsPaid = 0;
+            BigDecimal totalAmountSpent = BigDecimal.ZERO;
+            
+            for (LoanInstallment installment : payableInstallments) {
+                BigDecimal installmentAmount = installment.getAmount();
+                
+                // Check if we have enough money to pay this installment
+                if (remainingAmount.compareTo(installmentAmount) >= 0) {
+                    // Pay this installment
+                    installment.setPaidAmount(installmentAmount);
+                    installment.setPaymentDate(currentDate);
+                    installment.setIsPaid(true);
+                    
+                    remainingAmount = remainingAmount.subtract(installmentAmount);
+                    totalAmountSpent = totalAmountSpent.add(installmentAmount);
+                    installmentsPaid++;
+                } else {
+                    // Not enough money for this installment, stop here
+                    break;
+                }
+            }
+
+            // Check if all installments are now paid
+            boolean isLoanFullyPaid = loan.getInstallments().stream()
+                    .allMatch(LoanInstallment::getIsPaid);
+
+            if (isLoanFullyPaid) {
+                loan.setIsPaid(true);
+            }
+
+            // Update customer's used credit limit
+            Customer customer = loan.getCustomer();
+            customer.setUsedCreditLimit(customer.getUsedCreditLimit().subtract(totalAmountSpent));
+            customerRepository.save(customer);
+
+            // Save the loan (cascade will save installments)
+            loanRepository.save(loan);
+
+            // Create response message
+            String message = String.format("Successfully paid %d installment(s) for a total of %.2f", 
+                    installmentsPaid, totalAmountSpent);
+            
+            if (isLoanFullyPaid) {
+                message += ". Loan is now fully paid!";
+            }
+
+            return PayLoanResponse.builder()
+                    .installmentsPaid(installmentsPaid)
+                    .totalAmountSpent(totalAmountSpent)
+                    .isLoanFullyPaid(isLoanFullyPaid)
+                    .message(message)
+                    .build();
+
+        } catch (LoanNotFoundException | InvalidParameterException | LoanAlreadyPaidException | 
+                 InvalidPaymentAmountException | NoPayableInstallmentsException ex) {
+            // Re-throw our custom exceptions as-is
+            throw ex;
+        } catch (DataAccessException ex) {
+            // Handle Spring Data Access exceptions
+            throw new LoanDataAccessException("Database error while processing loan payment for loan ID: " + loanId, ex);
+        } catch (Exception ex) {
+            // Handle any other unexpected exceptions
+            throw new LoanDataAccessException("Unexpected error while processing loan payment for loan ID: " + loanId, ex);
+        }
     }
 } 

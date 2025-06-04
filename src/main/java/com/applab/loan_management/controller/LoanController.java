@@ -4,6 +4,8 @@ import com.applab.loan_management.dto.CreateLoanRequest;
 import com.applab.loan_management.dto.CreateLoanResponse;
 import com.applab.loan_management.dto.LoanListResponse;
 import com.applab.loan_management.dto.LoanInstallmentResponse;
+import com.applab.loan_management.dto.PayLoanRequest;
+import com.applab.loan_management.dto.PayLoanResponse;
 import com.applab.loan_management.entity.Loan;
 import com.applab.loan_management.service.LoanService;
 import jakarta.validation.Valid;
@@ -63,5 +65,14 @@ public class LoanController {
         
         List<LoanInstallmentResponse> installments = loanService.listLoanInstallments(loanId);
         return ResponseEntity.ok(installments);
+    }
+
+    @PostMapping("/{loanId}/pay")
+    public ResponseEntity<PayLoanResponse> payLoan(
+            @PathVariable @Min(value = 1, message = "Loan ID must be a positive number") Long loanId,
+            @Valid @RequestBody PayLoanRequest request) {
+        
+        PayLoanResponse response = loanService.payLoan(loanId, request);
+        return ResponseEntity.ok(response);
     }
 } 

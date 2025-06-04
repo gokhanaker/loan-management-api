@@ -2,17 +2,16 @@ package com.applab.loan_management.controller;
 
 import com.applab.loan_management.dto.CreateLoanRequest;
 import com.applab.loan_management.dto.CreateLoanResponse;
+import com.applab.loan_management.dto.LoanListResponse;
 import com.applab.loan_management.entity.Loan;
 import com.applab.loan_management.service.LoanService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/loans")
@@ -44,5 +43,15 @@ public class LoanController {
                 .build();
         
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping
+    public ResponseEntity<List<LoanListResponse>> listLoans(
+            @RequestParam Long customerId,
+            @RequestParam(required = false) Boolean isPaid,
+            @RequestParam(required = false) Integer numberOfInstallments) {
+        
+        List<LoanListResponse> loans = loanService.listLoans(customerId, isPaid, numberOfInstallments);
+        return ResponseEntity.ok(loans);
     }
 } 

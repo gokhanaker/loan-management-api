@@ -1,6 +1,7 @@
 package com.applab.loan_management.service;
 
 import com.applab.loan_management.dto.CreateLoanRequest;
+import com.applab.loan_management.dto.LoanListResponse;
 import com.applab.loan_management.entity.Customer;
 import com.applab.loan_management.entity.Loan;
 import com.applab.loan_management.entity.LoanInstallment;
@@ -17,6 +18,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -82,5 +84,55 @@ public class LoanService {
         customerRepository.save(customer);
 
         return loanRepository.save(loan);
+    }
+
+    public List<LoanListResponse> listLoans(Long customerId, Boolean isPaid, Integer numberOfInstallments) {
+        // Verify customer exists
+        customerRepository.findById(customerId)
+                .orElseThrow(() -> new EntityNotFoundException("Customer not found"));
+
+        List<Loan> loans;
+
+        // Apply filters based on provided parameters
+        if (isPaid != null && numberOfInstallments != null) {
+            loans = loanRepository.findByCustomerIdAndIsPaidAndNumberOfInstallments(customerId, isPaid, numberOfInstallments);
+        } else if (isPaid != null) {
+            loans = loanRepository.findByCustomerIdAndIsPaid(customerId, isPaid);
+        } else if (numberOfInstallments != null) {
+            loans = loanRepository.findByCustomerIdAndNumberOfInstallments(customerId, numberOfInstallments);
+        } else {
+            loans = loanRepository.findByCustomerId(customerId);
+        }
+
+        // Convert to response DTOs
+        return loans.stream()
+                .map(this::convertToLoanListResponse)
+                .collect(Collectors.toList());
+    }
+
+    private LoanListResponse convertToLoanListResponse(Loan loan) {
+        // Calculate total amount
+        BigDecimal totalAmount = loan.getLoanAmount()
+                .multiply(BigDecimal.ONE.add(loan.getInterestRate()))
+                .setScale(2, RoundingMode.HALF_UP);
+
+        // Calculate remaining installments
+        int remainingInstallments = (int) loan.getInstallments().stream()
+                .filter(installment -> !installment.getIsPaid())
+                .count();
+
+        return LoanListResponse.builder()
+                .id(loan.getId())
+                .customerId(loan.getCustomer().getId())
+                .customerName(loan.getCustomer().getName())
+                .customerSurname(loan.getCustomer().getSurname())
+                .loanAmount(loan.getLoanAmount())
+                .interestRate(loan.getInterestRate())
+                .numberOfInstallments(loan.getNumberOfInstallments())
+                .createDate(loan.getCreateDate())
+                .isPaid(loan.getIsPaid())
+                .totalAmount(totalAmount)
+                .remainingInstallments(remainingInstallments)
+                .build();
     }
 } 

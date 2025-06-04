@@ -6,6 +6,7 @@ import com.applab.loan_management.dto.AuthenticationResponse;
 import com.applab.loan_management.dto.RegisterRequest;
 import com.applab.loan_management.entity.Customer;
 import com.applab.loan_management.entity.User;
+import com.applab.loan_management.repository.CustomerRepository;
 import com.applab.loan_management.repository.UserRepository;
 import com.applab.loan_management.security.JwtService;
 import lombok.RequiredArgsConstructor;
@@ -20,27 +21,30 @@ import org.springframework.transaction.annotation.Transactional;
 public class AuthenticationService {
 
     private final UserRepository userRepository;
+    private final CustomerRepository customerRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
 
     @Transactional
     public AuthenticationResponse register(RegisterRequest request) {
-        var user = User.builder()
-                .email(request.getEmail())
-                .password(passwordEncoder.encode(request.getPassword()))
-                .role(request.getRole())
-                .build();
-
+        Customer customer = null;
         if (request.getRole() == Role.CUSTOMER) {
-            var customer = Customer.builder()
+            customer = Customer.builder()
                     .name(request.getName())
                     .surname(request.getSurname())
                     .creditLimit(request.getCreditLimit())
                     .usedCreditLimit(request.getUsedCreditLimit())
                     .build();
-            user.setCustomer(customer);
+            customer = customerRepository.save(customer);
         }
+
+        var user = User.builder()
+                .email(request.getEmail())
+                .password(passwordEncoder.encode(request.getPassword()))
+                .role(request.getRole())
+                .customer(customer)
+                .build();
 
         userRepository.save(user);
         var jwtToken = jwtService.generateToken(user);

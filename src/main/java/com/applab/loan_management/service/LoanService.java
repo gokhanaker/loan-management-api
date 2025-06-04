@@ -2,6 +2,7 @@ package com.applab.loan_management.service;
 
 import com.applab.loan_management.dto.CreateLoanRequest;
 import com.applab.loan_management.dto.LoanListResponse;
+import com.applab.loan_management.dto.LoanInstallmentResponse;
 import com.applab.loan_management.entity.Customer;
 import com.applab.loan_management.entity.Loan;
 import com.applab.loan_management.entity.LoanInstallment;
@@ -9,9 +10,13 @@ import com.applab.loan_management.exception.AdminCannotCreateLoanException;
 import com.applab.loan_management.exception.CustomerNotFoundException;
 import com.applab.loan_management.exception.InsufficientCreditLimitException;
 import com.applab.loan_management.exception.InvalidParameterException;
+import com.applab.loan_management.exception.LoanNotFoundException;
+import com.applab.loan_management.exception.UnauthorizedAccessException;
+import com.applab.loan_management.exception.LoanDataAccessException;
 import com.applab.loan_management.repository.CustomerRepository;
 import com.applab.loan_management.repository.LoanRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -159,6 +164,95 @@ public class LoanService {
                 .isPaid(loan.getIsPaid())
                 .totalAmount(totalAmount)
                 .remainingInstallments(remainingInstallments)
+                .build();
+    }
+
+    public List<LoanInstallmentResponse> listLoanInstallments(Long loanId, Boolean isPaid, Long customerId) {
+        // Validate loanId parameter
+        if (loanId == null || loanId <= 0) {
+            throw new InvalidParameterException("loanId", "must be a positive number");
+        }
+
+        // Validate customerId parameter if provided (for authorization)
+        if (customerId != null && customerId <= 0) {
+            throw new InvalidParameterException("customerId", "must be a positive number");
+        }
+
+        try {
+            // Verify loan exists and fetch with installments
+            Loan loan = loanRepository.findById(loanId)
+                    .orElseThrow(() -> new LoanNotFoundException(loanId));
+
+            // Authorization check: if customerId is provided, verify the loan belongs to that customer
+            if (customerId != null && !loan.getCustomer().getId().equals(customerId)) {
+                throw new UnauthorizedAccessException(customerId, loanId);
+            }
+
+            // Verify loan has installments (data integrity check)
+            if (loan.getInstallments() == null) {
+                throw new LoanDataAccessException("Loan installments data is corrupted for loan ID: " + loanId);
+            }
+
+            List<LoanInstallment> installments = loan.getInstallments();
+
+            // Check if installments list is empty (new loan scenario)
+            if (installments.isEmpty()) {
+                throw new LoanDataAccessException("No installments found for loan ID: " + loanId + ". This might indicate a data integrity issue.");
+            }
+
+            // Apply isPaid filter if provided
+            if (isPaid != null) {
+                installments = installments.stream()
+                        .filter(installment -> {
+                            if (installment.getIsPaid() == null) {
+                                throw new LoanDataAccessException("Installment payment status is null for loan ID: " + loanId);
+                            }
+                            return installment.getIsPaid().equals(isPaid);
+                        })
+                        .collect(Collectors.toList());
+            }
+
+            // Convert to response DTOs with installment numbers
+            List<LoanInstallmentResponse> responses = new ArrayList<>();
+            
+            // Get original installments list for proper numbering
+            List<LoanInstallment> originalInstallments = loan.getInstallments();
+            
+            for (LoanInstallment installment : installments) {
+                try {
+                    // Find the position of this installment in the original list for proper numbering
+                    int installmentNumber = originalInstallments.indexOf(installment) + 1;
+                    LoanInstallmentResponse response = convertToLoanInstallmentResponse(installment, installmentNumber);
+                    responses.add(response);
+                } catch (Exception ex) {
+                    throw new LoanDataAccessException("Failed to process installment data for loan ID: " + loanId, ex);
+                }
+            }
+
+            return responses;
+
+        } catch (LoanNotFoundException | InvalidParameterException | LoanDataAccessException ex) {
+            // Re-throw our custom exceptions as-is
+            throw ex;
+        } catch (DataAccessException ex) {
+            // Handle Spring Data Access exceptions
+            throw new LoanDataAccessException("Database error while retrieving loan installments for loan ID: " + loanId, ex);
+        } catch (Exception ex) {
+            // Handle any other unexpected exceptions
+            throw new LoanDataAccessException("Unexpected error while retrieving loan installments for loan ID: " + loanId, ex);
+        }
+    }
+
+    private LoanInstallmentResponse convertToLoanInstallmentResponse(LoanInstallment installment, int installmentNumber) {
+        return LoanInstallmentResponse.builder()
+                .id(installment.getId())
+                .loanId(installment.getLoan().getId())
+                .amount(installment.getAmount())
+                .dueDate(installment.getDueDate())
+                .paymentDate(installment.getPaymentDate())
+                .paidAmount(installment.getPaidAmount())
+                .isPaid(installment.getIsPaid())
+                .installmentNumber(installmentNumber)
                 .build();
     }
 } 

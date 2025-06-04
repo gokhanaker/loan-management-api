@@ -8,13 +8,14 @@ import com.applab.loan_management.entity.Customer;
 import com.applab.loan_management.entity.User;
 import com.applab.loan_management.repository.CustomerRepository;
 import com.applab.loan_management.repository.UserRepository;
-import com.applab.loan_management.security.JwtService;
+import com.applab.loan_management.security.JwtUtil;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.HashMap;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -23,8 +24,7 @@ public class AuthenticationService {
     private final UserRepository userRepository;
     private final CustomerRepository customerRepository;
     private final PasswordEncoder passwordEncoder;
-    private final JwtService jwtService;
-    private final AuthenticationManager authenticationManager;
+    private final JwtUtil jwtUtil;
 
     @Transactional
     public AuthenticationResponse register(RegisterRequest request) {
@@ -47,24 +47,41 @@ public class AuthenticationService {
                 .build();
 
         userRepository.save(user);
-        var jwtToken = jwtService.generateToken(user);
+        
+        // Generate JWT token with user details
+        Map<String, Object> extraClaims = new HashMap<>();
+        extraClaims.put("role", user.getRole().name());
+        extraClaims.put("userId", user.getId());
+        if (customer != null) {
+            extraClaims.put("customerId", customer.getId());
+        }
+        
+        var jwtToken = jwtUtil.generateToken(extraClaims, user);
         return AuthenticationResponse.builder()
                 .token(jwtToken)
                 .build();
     }
 
     public AuthenticationResponse authenticate(AuthenticationRequest request) {
-        authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        request.getEmail(),
-                        request.getPassword()
-                )
-        );
         var user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow();
-        var jwtToken = jwtService.generateToken(user);
-        return AuthenticationResponse.builder()
-                .token(jwtToken)
-                .build();
+                .orElseThrow(() -> new RuntimeException("User not found"));
+                
+        // Simple password check
+        if (passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+            // Generate JWT token with user details
+            Map<String, Object> extraClaims = new HashMap<>();
+            extraClaims.put("role", user.getRole().name());
+            extraClaims.put("userId", user.getId());
+            if (user.getCustomer() != null) {
+                extraClaims.put("customerId", user.getCustomer().getId());
+            }
+            
+            var jwtToken = jwtUtil.generateToken(extraClaims, user);
+            return AuthenticationResponse.builder()
+                    .token(jwtToken)
+                    .build();
+        } else {
+            throw new RuntimeException("Invalid credentials");
+        }
     }
 } 

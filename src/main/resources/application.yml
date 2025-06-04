@@ -22,7 +22,7 @@ server:
     context-path: /api
 
 jwt:
-  secret: ing-bank-loan-management-case-study
+  secret: AppLabLoanManagementIngBankSecretKeyThatIsSecureAndLongEnough
   expiration: 86400000 # 24 hours in milliseconds
 
 logging:

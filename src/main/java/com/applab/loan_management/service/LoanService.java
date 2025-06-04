@@ -5,13 +5,15 @@ import com.applab.loan_management.dto.LoanListResponse;
 import com.applab.loan_management.entity.Customer;
 import com.applab.loan_management.entity.Loan;
 import com.applab.loan_management.entity.LoanInstallment;
+import com.applab.loan_management.exception.AdminCannotCreateLoanException;
+import com.applab.loan_management.exception.CustomerNotFoundException;
+import com.applab.loan_management.exception.InsufficientCreditLimitException;
 import com.applab.loan_management.repository.CustomerRepository;
 import com.applab.loan_management.repository.LoanRepository;
-import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
- 
+
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
@@ -30,11 +32,11 @@ public class LoanService {
     @Transactional
     public Loan createLoan(CreateLoanRequest request) {
         Customer customer = customerRepository.findById(request.getCustomerId())
-                .orElseThrow(() -> new EntityNotFoundException("Customer not found"));
+                .orElseThrow(() -> new CustomerNotFoundException(request.getCustomerId()));
 
         // Check if customer has credit fields (only CUSTOMER role should have loans)
         if (customer.getCreditLimit() == null || customer.getUsedCreditLimit() == null) {
-            throw new IllegalStateException("Only customers with credit limits can create loans");
+            throw new AdminCannotCreateLoanException();
         }
 
         // Calculate total loan amount with interest
@@ -46,7 +48,7 @@ public class LoanService {
         BigDecimal availableCredit = customer.getCreditLimit().subtract(customer.getUsedCreditLimit());
 
         if (availableCredit.compareTo(totalAmount) < 0) {
-            throw new IllegalStateException("Customer does not have enough credit limit");
+            throw new InsufficientCreditLimitException(availableCredit, totalAmount);
         }
 
         // Create loan
@@ -89,7 +91,7 @@ public class LoanService {
     public List<LoanListResponse> listLoans(Long customerId, Boolean isPaid, Integer numberOfInstallments) {
         // Verify customer exists
         customerRepository.findById(customerId)
-                .orElseThrow(() -> new EntityNotFoundException("Customer not found"));
+                .orElseThrow(() -> new CustomerNotFoundException(customerId));
 
         List<Loan> loans;
 

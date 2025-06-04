@@ -24,11 +24,9 @@ public class LoanController {
     public ResponseEntity<CreateLoanResponse> createLoan(@Valid @RequestBody CreateLoanRequest request) {
         Loan loan = loanService.createLoan(request);
         
-        // Calculate total amount (loan amount + interest)
         BigDecimal totalAmount = request.getAmount()
                 .multiply(BigDecimal.ONE.add(request.getInterestRate()));
         
-        // Create response DTO without installments
         CreateLoanResponse response = CreateLoanResponse.builder()
                 .id(loan.getId())
                 .customerId(loan.getCustomer().getId())

@@ -2,9 +2,6 @@ package com.applab.loan_management.repository;
 
 import com.applab.loan_management.entity.Loan;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
-
 import java.util.List;
 
 public interface LoanRepository extends JpaRepository<Loan, Long> {

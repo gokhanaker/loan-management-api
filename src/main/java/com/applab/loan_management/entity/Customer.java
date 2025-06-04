@@ -1,7 +1,6 @@
 package com.applab.loan_management.entity;
 
 import com.applab.loan_management.constants.Role;
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -25,7 +24,6 @@ public class Customer {
     @Column(nullable = false, unique = true)
     private String email;
 
-    @JsonIgnore
     @Column(nullable = false)
     private String password;
 
@@ -46,7 +44,6 @@ public class Customer {
     @Column(precision = 10, scale = 2)
     private BigDecimal usedCreditLimit;
 
-    @JsonIgnore
     @OneToMany(mappedBy = "customer", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Loan> loans;
 }

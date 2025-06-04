@@ -5,13 +5,13 @@ import com.applab.loan_management.dto.AuthenticationRequest;
 import com.applab.loan_management.dto.AuthenticationResponse;
 import com.applab.loan_management.dto.RegisterRequest;
 import com.applab.loan_management.entity.Customer;
+import com.applab.loan_management.exception.EmailAlreadyExistsException;
 import com.applab.loan_management.repository.CustomerRepository;
 import com.applab.loan_management.security.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -26,7 +26,7 @@ public class AuthenticationService {
     public AuthenticationResponse register(RegisterRequest request) {
         // Check if email already exists
         if (customerRepository.existsByEmail(request.getEmail())) {
-            throw new RuntimeException("Email already registered");
+            throw new EmailAlreadyExistsException(request.getEmail());
         }
 
         Customer customer;

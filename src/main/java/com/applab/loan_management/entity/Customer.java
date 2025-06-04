@@ -39,10 +39,11 @@ public class Customer {
     @Column(nullable = false)
     private String surname;
 
-    @Column(nullable = false, precision = 10, scale = 2)
+    // Credit fields - only required for CUSTOMER role, null for ADMIN
+    @Column(precision = 10, scale = 2)
     private BigDecimal creditLimit;
 
-    @Column(nullable = false, precision = 10, scale = 2)
+    @Column(precision = 10, scale = 2)
     private BigDecimal usedCreditLimit;
 
     @JsonIgnore

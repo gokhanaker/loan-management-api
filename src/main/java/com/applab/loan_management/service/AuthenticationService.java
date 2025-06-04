@@ -1,5 +1,6 @@
 package com.applab.loan_management.service;
 
+import com.applab.loan_management.constants.Role;
 import com.applab.loan_management.dto.AuthenticationRequest;
 import com.applab.loan_management.dto.AuthenticationResponse;
 import com.applab.loan_management.dto.RegisterRequest;
@@ -28,16 +29,31 @@ public class AuthenticationService {
             throw new RuntimeException("Email already registered");
         }
 
-        // Create customer (which can be CUSTOMER or ADMIN role)
-        var customer = Customer.builder()
-                .email(request.getEmail())
-                .password(passwordEncoder.encode(request.getPassword()))
-                .role(request.getRole())
-                .name(request.getName())
-                .surname(request.getSurname())
-                .creditLimit(request.getCreditLimit() != null ? request.getCreditLimit() : BigDecimal.ZERO)
-                .usedCreditLimit(request.getUsedCreditLimit() != null ? request.getUsedCreditLimit() : BigDecimal.ZERO)
-                .build();
+        Customer customer;
+
+        if (request.getRole() == Role.CUSTOMER) {
+            // Create customer with credit fields
+            customer = Customer.builder()
+                    .email(request.getEmail())
+                    .password(passwordEncoder.encode(request.getPassword()))
+                    .role(request.getRole())
+                    .name(request.getName())
+                    .surname(request.getSurname())
+                    .creditLimit(request.getCreditLimit())
+                    .usedCreditLimit(request.getUsedCreditLimit())
+                    .build();
+        } else {
+            // Create admin without credit fields
+            customer = Customer.builder()
+                    .email(request.getEmail())
+                    .password(passwordEncoder.encode(request.getPassword()))
+                    .role(request.getRole())
+                    .name(request.getName())
+                    .surname(request.getSurname())
+                    .creditLimit(null)
+                    .usedCreditLimit(null)
+                    .build();
+        }
 
         customerRepository.save(customer);
 

@@ -30,6 +30,11 @@ public class LoanService {
         Customer customer = customerRepository.findById(request.getCustomerId())
                 .orElseThrow(() -> new EntityNotFoundException("Customer not found"));
 
+        // Check if customer has credit fields (only CUSTOMER role should have loans)
+        if (customer.getCreditLimit() == null || customer.getUsedCreditLimit() == null) {
+            throw new IllegalStateException("Only customers with credit limits can create loans");
+        }
+
         // Calculate total loan amount with interest
         BigDecimal totalAmount = request.getAmount()
                 .multiply(BigDecimal.ONE.add(request.getInterestRate()))

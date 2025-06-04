@@ -8,6 +8,7 @@ import com.applab.loan_management.entity.LoanInstallment;
 import com.applab.loan_management.exception.AdminCannotCreateLoanException;
 import com.applab.loan_management.exception.CustomerNotFoundException;
 import com.applab.loan_management.exception.InsufficientCreditLimitException;
+import com.applab.loan_management.exception.InvalidParameterException;
 import com.applab.loan_management.repository.CustomerRepository;
 import com.applab.loan_management.repository.LoanRepository;
 import lombok.RequiredArgsConstructor;
@@ -89,24 +90,47 @@ public class LoanService {
     }
 
     public List<LoanListResponse> listLoans(Long customerId, Boolean isPaid, Integer numberOfInstallments) {
+        // Validate customerId parameter
+        if (customerId == null || customerId <= 0) {
+            throw new InvalidParameterException("customerId", "must be a positive number");
+        }
+
+        // Validate numberOfInstallments parameter if provided
+        if (numberOfInstallments != null) {
+            if (numberOfInstallments <= 0) {
+                throw new InvalidParameterException("numberOfInstallments", "must be a positive number");
+            }
+            // Check if it's one of the allowed values (6, 9, 12, 24)
+            if (numberOfInstallments != 6 && numberOfInstallments != 9 && 
+                numberOfInstallments != 12 && numberOfInstallments != 24) {
+                throw new InvalidParameterException("numberOfInstallments", 
+                    "must be one of: 6, 9, 12, or 24");
+            }
+        }
+
         // Verify customer exists
-        customerRepository.findById(customerId)
+        Customer customer = customerRepository.findById(customerId)
                 .orElseThrow(() -> new CustomerNotFoundException(customerId));
 
         List<Loan> loans;
 
-        // Apply filters based on provided parameters
-        if (isPaid != null && numberOfInstallments != null) {
-            loans = loanRepository.findByCustomerIdAndIsPaidAndNumberOfInstallments(customerId, isPaid, numberOfInstallments);
-        } else if (isPaid != null) {
-            loans = loanRepository.findByCustomerIdAndIsPaid(customerId, isPaid);
-        } else if (numberOfInstallments != null) {
-            loans = loanRepository.findByCustomerIdAndNumberOfInstallments(customerId, numberOfInstallments);
-        } else {
-            loans = loanRepository.findByCustomerId(customerId);
+        try {
+            // Apply filters based on provided parameters
+            if (isPaid != null && numberOfInstallments != null) {
+                loans = loanRepository.findByCustomerIdAndIsPaidAndNumberOfInstallments(customerId, isPaid, numberOfInstallments);
+            } else if (isPaid != null) {
+                loans = loanRepository.findByCustomerIdAndIsPaid(customerId, isPaid);
+            } else if (numberOfInstallments != null) {
+                loans = loanRepository.findByCustomerIdAndNumberOfInstallments(customerId, numberOfInstallments);
+            } else {
+                loans = loanRepository.findByCustomerId(customerId);
+            }
+        } catch (Exception ex) {
+            // Log the exception and rethrow as a more user-friendly message
+            throw new RuntimeException("Failed to retrieve loans for customer ID: " + customerId, ex);
         }
 
-        // Convert to response DTOs
+        // Convert to response DTOs - return empty list if no loans found
         return loans.stream()
                 .map(this::convertToLoanListResponse)
                 .collect(Collectors.toList());

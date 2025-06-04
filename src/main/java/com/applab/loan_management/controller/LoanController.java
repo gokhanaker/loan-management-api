@@ -6,8 +6,10 @@ import com.applab.loan_management.dto.LoanListResponse;
 import com.applab.loan_management.entity.Loan;
 import com.applab.loan_management.service.LoanService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
@@ -16,6 +18,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/loans")
 @RequiredArgsConstructor
+@Validated
 public class LoanController {
 
     private final LoanService loanService;
@@ -45,7 +48,7 @@ public class LoanController {
 
     @GetMapping
     public ResponseEntity<List<LoanListResponse>> listLoans(
-            @RequestParam Long customerId,
+            @RequestParam @Min(value = 1, message = "Customer ID must be a positive number") Long customerId,
             @RequestParam(required = false) Boolean isPaid,
             @RequestParam(required = false) Integer numberOfInstallments) {
         

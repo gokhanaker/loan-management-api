@@ -6,6 +6,8 @@ import com.applab.loan_management.dto.AuthenticationResponse;
 import com.applab.loan_management.dto.RegisterRequest;
 import com.applab.loan_management.entity.Customer;
 import com.applab.loan_management.exception.EmailAlreadyExistsException;
+import com.applab.loan_management.exception.InvalidCredentialsException;
+import com.applab.loan_management.exception.UserNotFoundException;
 import com.applab.loan_management.repository.CustomerRepository;
 import com.applab.loan_management.security.JwtUtil;
 import lombok.RequiredArgsConstructor;
@@ -57,13 +59,8 @@ public class AuthenticationService {
 
         customerRepository.save(customer);
 
-        // Generate JWT token with additional claims
-        Map<String, Object> extraClaims = new HashMap<>();
-        extraClaims.put("role", customer.getRole().name());
-        extraClaims.put("userId", customer.getId());
-        extraClaims.put("customerId", customer.getId());
-
-        var jwtToken = jwtUtil.generateToken(extraClaims, new CustomerUserDetails(customer));
+        // Generate JWT token using helper method
+        String jwtToken = generateJwtToken(customer);
         
         return AuthenticationResponse.builder()
                 .token(jwtToken)
@@ -71,24 +68,33 @@ public class AuthenticationService {
     }
 
     public AuthenticationResponse authenticate(AuthenticationRequest request) {
-        var customer = customerRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new RuntimeException("Customer not found"));
+        // Find customer by email
+        Customer customer = customerRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new UserNotFoundException(request.getEmail()));
 
         // Verify password
         if (!passwordEncoder.matches(request.getPassword(), customer.getPassword())) {
-            throw new RuntimeException("Invalid credentials");
+            throw new InvalidCredentialsException();
         }
 
-        // Generate JWT token with additional claims
+        // Generate JWT token using helper method
+        String jwtToken = generateJwtToken(customer);
+        
+        return AuthenticationResponse.builder()
+                .token(jwtToken)
+                .build();
+    }
+
+    /**
+     * Helper method to generate JWT token with customer claims
+     * Reduces code duplication between register and authenticate methods
+     */
+    private String generateJwtToken(Customer customer) {
         Map<String, Object> extraClaims = new HashMap<>();
         extraClaims.put("role", customer.getRole().name());
         extraClaims.put("userId", customer.getId());
         extraClaims.put("customerId", customer.getId());
 
-        var jwtToken = jwtUtil.generateToken(extraClaims, new CustomerUserDetails(customer));
-        
-        return AuthenticationResponse.builder()
-                .token(jwtToken)
-                .build();
+        return jwtUtil.generateToken(extraClaims, new CustomerUserDetails(customer));
     }
 } 

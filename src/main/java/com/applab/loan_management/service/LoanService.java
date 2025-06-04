@@ -17,8 +17,10 @@ import com.applab.loan_management.exception.LoanDataAccessException;
 import com.applab.loan_management.exception.LoanAlreadyPaidException;
 import com.applab.loan_management.exception.InvalidPaymentAmountException;
 import com.applab.loan_management.exception.NoPayableInstallmentsException;
+import com.applab.loan_management.exception.CustomerAccessDeniedException;
 import com.applab.loan_management.repository.CustomerRepository;
 import com.applab.loan_management.repository.LoanRepository;
+import com.applab.loan_management.service.CurrentUserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Service;
@@ -38,9 +40,16 @@ public class LoanService {
 
     private final LoanRepository loanRepository;
     private final CustomerRepository customerRepository;
+    private final CurrentUserService currentUserService;
 
     @Transactional
     public Loan createLoan(CreateLoanRequest request) {
+        // Authorization check: ensure current user can access this customer's data
+        if (!currentUserService.canAccessCustomerData(request.getCustomerId())) {
+            Long currentCustomerId = currentUserService.getCurrentCustomerId();
+            throw new CustomerAccessDeniedException(request.getCustomerId(), currentCustomerId);
+        }
+
         Customer customer = customerRepository.findById(request.getCustomerId())
                 .orElseThrow(() -> new CustomerNotFoundException(request.getCustomerId()));
 
@@ -102,6 +111,12 @@ public class LoanService {
         // Validate customerId parameter
         if (customerId == null || customerId <= 0) {
             throw new InvalidParameterException("customerId", "must be a positive number");
+        }
+
+        // Authorization check: ensure current user can access this customer's data
+        if (!currentUserService.canAccessCustomerData(customerId)) {
+            Long currentCustomerId = currentUserService.getCurrentCustomerId();
+            throw new CustomerAccessDeniedException(customerId, currentCustomerId);
         }
 
         // Validate numberOfInstallments parameter if provided
@@ -182,6 +197,13 @@ public class LoanService {
             Loan loan = loanRepository.findById(loanId)
                     .orElseThrow(() -> new LoanNotFoundException(loanId));
 
+            // Authorization check: ensure current user can access this loan's customer data
+            Long loanCustomerId = loan.getCustomer().getId();
+            if (!currentUserService.canAccessCustomerData(loanCustomerId)) {
+                Long currentCustomerId = currentUserService.getCurrentCustomerId();
+                throw new CustomerAccessDeniedException(loanCustomerId, currentCustomerId);
+            }
+
             // Verify loan has installments (data integrity check)
             if (loan.getInstallments() == null) {
                 throw new LoanDataAccessException("Loan installments data is corrupted for loan ID: " + loanId);
@@ -210,7 +232,7 @@ public class LoanService {
 
             return responses;
 
-        } catch (LoanNotFoundException | InvalidParameterException | LoanDataAccessException ex) {
+        } catch (LoanNotFoundException | InvalidParameterException | LoanDataAccessException | CustomerAccessDeniedException ex) {
             // Re-throw our custom exceptions as-is
             throw ex;
         } catch (DataAccessException ex) {
@@ -246,6 +268,13 @@ public class LoanService {
             // Verify loan exists and fetch with installments and customer
             Loan loan = loanRepository.findById(loanId)
                     .orElseThrow(() -> new LoanNotFoundException(loanId));
+
+            // Authorization check: ensure current user can access this loan's customer data
+            Long loanCustomerId = loan.getCustomer().getId();
+            if (!currentUserService.canAccessCustomerData(loanCustomerId)) {
+                Long currentCustomerId = currentUserService.getCurrentCustomerId();
+                throw new CustomerAccessDeniedException(loanCustomerId, currentCustomerId);
+            }
 
             // Check if loan is already fully paid
             if (Boolean.TRUE.equals(loan.getIsPaid())) {
@@ -329,7 +358,7 @@ public class LoanService {
                     .build();
 
         } catch (LoanNotFoundException | InvalidParameterException | LoanAlreadyPaidException | 
-                 InvalidPaymentAmountException | NoPayableInstallmentsException ex) {
+                 InvalidPaymentAmountException | NoPayableInstallmentsException | CustomerAccessDeniedException ex) {
             // Re-throw our custom exceptions as-is
             throw ex;
         } catch (DataAccessException ex) {

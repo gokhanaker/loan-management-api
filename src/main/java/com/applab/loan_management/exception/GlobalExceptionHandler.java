@@ -315,6 +315,21 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
     }
 
+    @ExceptionHandler(CustomerAccessDeniedException.class)
+    public ResponseEntity<ErrorResponse> handleCustomerAccessDenied(
+            CustomerAccessDeniedException ex, HttpServletRequest request) {
+        
+        ErrorResponse errorResponse = ErrorResponse.builder()
+                .error("CUSTOMER_ACCESS_DENIED")
+                .message(ex.getMessage())
+                .status(HttpStatus.FORBIDDEN.value())
+                .timestamp(LocalDateTime.now())
+                .path(request.getRequestURI())
+                .build();
+        
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(errorResponse);
+    }
+
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ErrorResponse> handleAccessDenied(
             AccessDeniedException ex, HttpServletRequest request) {

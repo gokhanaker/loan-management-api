@@ -1,5 +1,6 @@
 package com.applab.loan_management.security;
 
+import com.applab.loan_management.constants.Role;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
@@ -28,8 +29,19 @@ public class JwtUtil {
         return extractClaim(token, Claims::getSubject);
     }
 
-    public String extractRole(String token) {
-        return extractClaim(token, claims -> claims.get("role", String.class));
+    public Role extractRole(String token) {
+        String roleString = extractClaim(token, claims -> claims.get("role", String.class));
+        return roleString != null ? Role.valueOf(roleString) : null;
+    }
+
+    public Long extractCustomerId(String token) {
+        Integer customerIdInt = extractClaim(token, claims -> claims.get("customerId", Integer.class));
+        return customerIdInt != null ? customerIdInt.longValue() : null;
+    }
+
+    public Long extractUserId(String token) {
+        Integer userIdInt = extractClaim(token, claims -> claims.get("userId", Integer.class));
+        return userIdInt != null ? userIdInt.longValue() : null;
     }
 
     public <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {

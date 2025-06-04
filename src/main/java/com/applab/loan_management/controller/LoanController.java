@@ -59,11 +59,9 @@ public class LoanController {
 
     @GetMapping("/{loanId}/installments")
     public ResponseEntity<List<LoanInstallmentResponse>> listLoanInstallments(
-            @PathVariable @Min(value = 1, message = "Loan ID must be a positive number") Long loanId,
-            @RequestParam(required = false) Boolean isPaid,
-            @RequestParam(required = false) @Min(value = 1, message = "Customer ID must be a positive number") Long customerId) {
+            @PathVariable @Min(value = 1, message = "Loan ID must be a positive number") Long loanId) {
         
-        List<LoanInstallmentResponse> installments = loanService.listLoanInstallments(loanId, isPaid, customerId);
+        List<LoanInstallmentResponse> installments = loanService.listLoanInstallments(loanId);
         return ResponseEntity.ok(installments);
     }
 } 

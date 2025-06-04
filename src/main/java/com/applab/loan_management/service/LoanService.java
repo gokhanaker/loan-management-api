@@ -11,7 +11,6 @@ import com.applab.loan_management.exception.CustomerNotFoundException;
 import com.applab.loan_management.exception.InsufficientCreditLimitException;
 import com.applab.loan_management.exception.InvalidParameterException;
 import com.applab.loan_management.exception.LoanNotFoundException;
-import com.applab.loan_management.exception.UnauthorizedAccessException;
 import com.applab.loan_management.exception.LoanDataAccessException;
 import com.applab.loan_management.repository.CustomerRepository;
 import com.applab.loan_management.repository.LoanRepository;
@@ -167,26 +166,16 @@ public class LoanService {
                 .build();
     }
 
-    public List<LoanInstallmentResponse> listLoanInstallments(Long loanId, Boolean isPaid, Long customerId) {
+    public List<LoanInstallmentResponse> listLoanInstallments(Long loanId) {
         // Validate loanId parameter
         if (loanId == null || loanId <= 0) {
             throw new InvalidParameterException("loanId", "must be a positive number");
-        }
-
-        // Validate customerId parameter if provided (for authorization)
-        if (customerId != null && customerId <= 0) {
-            throw new InvalidParameterException("customerId", "must be a positive number");
         }
 
         try {
             // Verify loan exists and fetch with installments
             Loan loan = loanRepository.findById(loanId)
                     .orElseThrow(() -> new LoanNotFoundException(loanId));
-
-            // Authorization check: if customerId is provided, verify the loan belongs to that customer
-            if (customerId != null && !loan.getCustomer().getId().equals(customerId)) {
-                throw new UnauthorizedAccessException(customerId, loanId);
-            }
 
             // Verify loan has installments (data integrity check)
             if (loan.getInstallments() == null) {
@@ -200,28 +189,13 @@ public class LoanService {
                 throw new LoanDataAccessException("No installments found for loan ID: " + loanId + ". This might indicate a data integrity issue.");
             }
 
-            // Apply isPaid filter if provided
-            if (isPaid != null) {
-                installments = installments.stream()
-                        .filter(installment -> {
-                            if (installment.getIsPaid() == null) {
-                                throw new LoanDataAccessException("Installment payment status is null for loan ID: " + loanId);
-                            }
-                            return installment.getIsPaid().equals(isPaid);
-                        })
-                        .collect(Collectors.toList());
-            }
-
             // Convert to response DTOs with installment numbers
             List<LoanInstallmentResponse> responses = new ArrayList<>();
             
-            // Get original installments list for proper numbering
-            List<LoanInstallment> originalInstallments = loan.getInstallments();
-            
-            for (LoanInstallment installment : installments) {
+            for (int i = 0; i < installments.size(); i++) {
                 try {
-                    // Find the position of this installment in the original list for proper numbering
-                    int installmentNumber = originalInstallments.indexOf(installment) + 1;
+                    LoanInstallment installment = installments.get(i);
+                    int installmentNumber = i + 1;
                     LoanInstallmentResponse response = convertToLoanInstallmentResponse(installment, installmentNumber);
                     responses.add(response);
                 } catch (Exception ex) {

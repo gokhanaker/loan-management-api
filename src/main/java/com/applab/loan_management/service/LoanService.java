@@ -66,7 +66,6 @@ public class LoanService {
             throw new InsufficientCreditLimitException(availableCredit, totalAmount);
         }
 
-        // Create loan
         Loan loan = Loan.builder()
                 .customer(customer)
                 .loanAmount(request.getAmount())
@@ -76,7 +75,7 @@ public class LoanService {
                 .isPaid(false)
                 .build();
 
-        // Calculate installment amount using utility method
+        // Calculate installment amount
         BigDecimal installmentAmount = LoanMapperUtil.calculateInstallmentAmount(totalAmount, request.getNumberOfInstallments());
 
         // Create installments

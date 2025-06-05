@@ -1,6 +1,5 @@
 package com.applab.loan_management.service;
 
-import com.applab.loan_management.constants.Role;
 import com.applab.loan_management.dto.AuthenticationRequest;
 import com.applab.loan_management.dto.AuthenticationResponse;
 import com.applab.loan_management.dto.RegisterRequest;

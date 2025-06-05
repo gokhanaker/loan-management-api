@@ -199,7 +199,7 @@ class AuthenticationServiceTest {
 
         assertThat(result).isNotNull();
         assertThat(result.getToken()).isEqualTo("generated-jwt-token");
-        assertThat(result.getMessage()).isEqualTo("Successful login with customer ID: 1!");
+        assertThat(result.getMessage()).isEqualTo("Successful login with customer ID: 1");
         assertThat(result.getTimestamp()).isNotNull();
     }
 
@@ -219,7 +219,7 @@ class AuthenticationServiceTest {
 
         assertThat(result).isNotNull();
         assertThat(result.getToken()).isEqualTo("admin-jwt-token");
-        assertThat(result.getMessage()).isEqualTo("Successful login with customer ID: 2!");
+        assertThat(result.getMessage()).isEqualTo("Successful login with customer ID: 2");
         assertThat(result.getTimestamp()).isNotNull();
     }
 

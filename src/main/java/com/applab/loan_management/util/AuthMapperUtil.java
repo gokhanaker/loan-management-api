@@ -94,6 +94,6 @@ public final class AuthMapperUtil {
     }
 
     public static String generateAuthenticationMessage(Customer customer) {
-        return String.format("Successful login with customer ID: %s!", customer.getId());
+        return String.format("Successful login with customer ID: %s", customer.getId());
     }
 } 

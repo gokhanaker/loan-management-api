@@ -1,5 +1,6 @@
 package com.applab.loan_management.service;
 
+import com.applab.loan_management.constants.Role;
 import com.applab.loan_management.dto.CreateLoanRequest;
 import com.applab.loan_management.dto.LoanListResponse;
 import com.applab.loan_management.dto.LoanInstallmentResponse;
@@ -20,7 +21,7 @@ import com.applab.loan_management.exception.NoPayableInstallmentsException;
 import com.applab.loan_management.exception.CustomerAccessDeniedException;
 import com.applab.loan_management.repository.CustomerRepository;
 import com.applab.loan_management.repository.LoanRepository;
-import com.applab.loan_management.service.CurrentUserService;
+import com.applab.loan_management.util.LoanMapperUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Service;
@@ -58,12 +59,9 @@ public class LoanService {
             throw new AdminCannotCreateLoanException();
         }
 
-        // Calculate total loan amount with interest
-        BigDecimal totalAmount = request.getAmount()
-                .multiply(BigDecimal.ONE.add(request.getInterestRate()))
-                .setScale(2, RoundingMode.HALF_UP);
+        // Calculate total loan amount with interest using utility method
+        BigDecimal totalAmount = LoanMapperUtil.calculateTotalLoanAmount(request.getAmount(), request.getInterestRate());
 
-        // Check if customer has enough credit limit
         BigDecimal availableCredit = customer.getCreditLimit().subtract(customer.getUsedCreditLimit());
 
         if (availableCredit.compareTo(totalAmount) < 0) {
@@ -80,9 +78,8 @@ public class LoanService {
                 .isPaid(false)
                 .build();
 
-        // Calculate installment amount
-        BigDecimal installmentAmount = totalAmount
-                .divide(BigDecimal.valueOf(request.getNumberOfInstallments()), 2, RoundingMode.HALF_UP);
+        // Calculate installment amount using utility method
+        BigDecimal installmentAmount = LoanMapperUtil.calculateInstallmentAmount(totalAmount, request.getNumberOfInstallments());
 
         // Create installments
         List<LoanInstallment> installments = new ArrayList<>();
@@ -133,7 +130,7 @@ public class LoanService {
         }
 
         // Verify customer exists
-        Customer customer = customerRepository.findById(customerId)
+        customerRepository.findById(customerId)
                 .orElseThrow(() -> new CustomerNotFoundException(customerId));
 
         List<Loan> loans;
@@ -154,36 +151,10 @@ public class LoanService {
             throw new RuntimeException("Failed to retrieve loans for customer ID: " + customerId, ex);
         }
 
-        // Convert to response DTOs - return empty list if no loans found
+        // Convert to response DTOs using utility method
         return loans.stream()
-                .map(this::convertToLoanListResponse)
+                .map(LoanMapperUtil::toLoanListResponse)
                 .collect(Collectors.toList());
-    }
-
-    private LoanListResponse convertToLoanListResponse(Loan loan) {
-        // Calculate total amount
-        BigDecimal totalAmount = loan.getLoanAmount()
-                .multiply(BigDecimal.ONE.add(loan.getInterestRate()))
-                .setScale(2, RoundingMode.HALF_UP);
-
-        // Calculate remaining installments
-        int remainingInstallments = (int) loan.getInstallments().stream()
-                .filter(installment -> !installment.getIsPaid())
-                .count();
-
-        return LoanListResponse.builder()
-                .id(loan.getId())
-                .customerId(loan.getCustomer().getId())
-                .customerName(loan.getCustomer().getName())
-                .customerSurname(loan.getCustomer().getSurname())
-                .loanAmount(loan.getLoanAmount())
-                .interestRate(loan.getInterestRate())
-                .numberOfInstallments(loan.getNumberOfInstallments())
-                .createDate(loan.getCreateDate())
-                .isPaid(loan.getIsPaid())
-                .totalAmount(totalAmount)
-                .remainingInstallments(remainingInstallments)
-                .build();
     }
 
     public List<LoanInstallmentResponse> listLoanInstallments(Long loanId) {
@@ -216,21 +187,8 @@ public class LoanService {
                 throw new LoanDataAccessException("No installments found for loan ID: " + loanId + ". This might indicate a data integrity issue.");
             }
 
-            // Convert to response DTOs with installment numbers
-            List<LoanInstallmentResponse> responses = new ArrayList<>();
-            
-            for (int i = 0; i < installments.size(); i++) {
-                try {
-                    LoanInstallment installment = installments.get(i);
-                    int installmentNumber = i + 1;
-                    LoanInstallmentResponse response = convertToLoanInstallmentResponse(installment, installmentNumber);
-                    responses.add(response);
-                } catch (Exception ex) {
-                    throw new LoanDataAccessException("Failed to process installment data for loan ID: " + loanId, ex);
-                }
-            }
-
-            return responses;
+            // Convert to response DTOs using utility method
+            return LoanMapperUtil.toLoanInstallmentResponseList(installments);
 
         } catch (LoanNotFoundException | InvalidParameterException | LoanDataAccessException | CustomerAccessDeniedException ex) {
             // Re-throw our custom exceptions as-is
@@ -242,19 +200,6 @@ public class LoanService {
             // Handle any other unexpected exceptions
             throw new LoanDataAccessException("Unexpected error while retrieving loan installments for loan ID: " + loanId, ex);
         }
-    }
-
-    private LoanInstallmentResponse convertToLoanInstallmentResponse(LoanInstallment installment, int installmentNumber) {
-        return LoanInstallmentResponse.builder()
-                .id(installment.getId())
-                .loanId(installment.getLoan().getId())
-                .amount(installment.getAmount())
-                .dueDate(installment.getDueDate())
-                .paymentDate(installment.getPaymentDate())
-                .paidAmount(installment.getPaidAmount())
-                .isPaid(installment.getIsPaid())
-                .installmentNumber(installmentNumber)
-                .build();
     }
 
     @Transactional
@@ -326,9 +271,8 @@ public class LoanService {
                 }
             }
 
-            // Check if all installments are now paid
-            boolean isLoanFullyPaid = loan.getInstallments().stream()
-                    .allMatch(LoanInstallment::getIsPaid);
+            // Check if all installments are now paid using utility method
+            boolean isLoanFullyPaid = LoanMapperUtil.isLoanFullyPaid(loan.getInstallments());
 
             if (isLoanFullyPaid) {
                 loan.setIsPaid(true);

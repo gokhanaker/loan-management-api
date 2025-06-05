@@ -20,5 +20,5 @@ server:
   port: 8080
 
 jwt:
-  secret: AppLabLoanManagementIngBankSecretKeyThatIsSecureAndLongEnough
+  secret: AppLabLoanManagementSecretKeyThatIsSecureAndLongEnough
   expiration: 86400000 # 24 hours in milliseconds

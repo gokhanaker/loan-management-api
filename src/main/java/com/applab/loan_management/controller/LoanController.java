@@ -8,6 +8,7 @@ import com.applab.loan_management.dto.PayLoanRequest;
 import com.applab.loan_management.dto.PayLoanResponse;
 import com.applab.loan_management.entity.Loan;
 import com.applab.loan_management.service.LoanService;
+import com.applab.loan_management.util.LoanMapperUtil;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
@@ -15,7 +16,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
-import java.math.BigDecimal;
 import java.util.List;
 
 @RestController
@@ -30,21 +30,8 @@ public class LoanController {
     public ResponseEntity<CreateLoanResponse> createLoan(@Valid @RequestBody CreateLoanRequest request) {
         Loan loan = loanService.createLoan(request);
         
-        BigDecimal totalAmount = request.getAmount()
-                .multiply(BigDecimal.ONE.add(request.getInterestRate()));
-        
-        CreateLoanResponse response = CreateLoanResponse.builder()
-                .id(loan.getId())
-                .customerId(loan.getCustomer().getId())
-                .customerName(loan.getCustomer().getName())
-                .customerSurname(loan.getCustomer().getSurname())
-                .loanAmount(loan.getLoanAmount())
-                .interestRate(loan.getInterestRate())
-                .numberOfInstallments(loan.getNumberOfInstallments())
-                .createDate(loan.getCreateDate())
-                .isPaid(loan.getIsPaid())
-                .totalAmount(totalAmount)
-                .build();
+        // Use utility method for conversion
+        CreateLoanResponse response = LoanMapperUtil.toCreateLoanResponse(loan);
         
         return ResponseEntity.ok(response);
     }

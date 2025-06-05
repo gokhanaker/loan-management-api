@@ -18,7 +18,7 @@ public class CreateLoanRequest {
     private Long customerId;
     
     @NotNull(message = "Loan amount is required")
-    @DecimalMin(value = "0.0", inclusive = false, message = "Loan amount must be greater than 0")
+    @DecimalMin(value = "100", message = "Loan amount must be at least 100")
     private BigDecimal amount;
     
     @NotNull(message = "Interest rate is required")

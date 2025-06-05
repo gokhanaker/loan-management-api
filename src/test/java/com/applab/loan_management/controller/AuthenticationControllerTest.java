@@ -1,8 +1,12 @@
 package com.applab.loan_management.controller;
 
 import com.applab.loan_management.constants.Role;
+import com.applab.loan_management.dto.AuthenticationRequest;
+import com.applab.loan_management.dto.AuthenticationResponse;
 import com.applab.loan_management.dto.RegisterRequest;
 import com.applab.loan_management.dto.RegisterResponse;
+import com.applab.loan_management.exception.InvalidCredentialsException;
+import com.applab.loan_management.exception.UserNotFoundException;
 import com.applab.loan_management.service.AuthenticationService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -20,9 +24,11 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("Authentication Controller Tests")
@@ -46,6 +52,12 @@ class AuthenticationControllerTest {
     private RegisterRequest validAdminRequest;
     private RegisterResponse customerResponse;
     private RegisterResponse adminResponse;
+    
+    // Authentication-related test data
+    private AuthenticationRequest validAuthenticationRequest;
+    private AuthenticationRequest invalidAuthenticationRequestWithoutEmail;
+    private AuthenticationRequest invalidAuthenticationRequestWithoutPassword;
+    private AuthenticationResponse authenticationResponse;
 
     @BeforeEach
     void setUp() {
@@ -144,6 +156,26 @@ class AuthenticationControllerTest {
                         .role("ADMIN")
                         .build())
                 .registrationTime(LocalDateTime.now())
+                .build();
+
+        // Setup authentication test data
+        validAuthenticationRequest = AuthenticationRequest.builder()
+                .email("customer@test.com")
+                .password("password123")
+                .build();
+
+        invalidAuthenticationRequestWithoutEmail = AuthenticationRequest.builder()
+                .password("password123")
+                .build();
+
+        invalidAuthenticationRequestWithoutPassword = AuthenticationRequest.builder()
+                .email("customer@test.com")
+                .build();
+
+        authenticationResponse = AuthenticationResponse.builder()
+                .token("auth-jwt-token")
+                .message("Successful login with customer ID: 1!")
+                .timestamp(LocalDateTime.now())
                 .build();
     }
 
@@ -298,5 +330,113 @@ class AuthenticationControllerTest {
                 request.getCreditLimit() == null &&
                 request.getUsedCreditLimit() == null
         ));
+    }
+
+    @Test
+    @DisplayName("Should successfully authenticate user with valid credentials")
+    void shouldSuccessfullyAuthenticateUserWithValidCredentials() throws Exception {
+        // Given
+        when(authenticationService.authenticate(any(AuthenticationRequest.class))).thenReturn(authenticationResponse);
+
+        // When & Then
+        mockMvc.perform(post("/api/auth/authenticate")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(validAuthenticationRequest)))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.token").value("auth-jwt-token"))
+                .andExpect(jsonPath("$.message").value("Successful login with customer ID: 1!"))
+                .andExpect(jsonPath("$.timestamp").exists());
+
+        verify(authenticationService).authenticate(argThat(request ->
+                request.getEmail().equals("customer@test.com") &&
+                request.getPassword().equals("password123")
+        ));
+    }
+
+    @Test
+    @DisplayName("Should return 400 when email is missing in authentication request")
+    void shouldReturn400WhenEmailIsMissingInAuthenticationRequest() throws Exception {
+        // When & Then
+        mockMvc.perform(post("/api/auth/authenticate")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(invalidAuthenticationRequestWithoutEmail)))
+                .andExpect(status().isBadRequest());
+
+        verify(authenticationService, never()).authenticate(any(AuthenticationRequest.class));
+    }
+
+    @Test
+    @DisplayName("Should return 400 when password is missing in authentication request")
+    void shouldReturn400WhenPasswordIsMissingInAuthenticationRequest() throws Exception {
+        // When & Then
+        mockMvc.perform(post("/api/auth/authenticate")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(invalidAuthenticationRequestWithoutPassword)))
+                .andExpect(status().isBadRequest());
+
+        verify(authenticationService, never()).authenticate(any(AuthenticationRequest.class));
+    }
+
+    @Test
+    @DisplayName("Should return 400 when email format is invalid in authentication request")
+    void shouldReturn400WhenEmailFormatIsInvalidInAuthenticationRequest() throws Exception {
+        // Given
+        AuthenticationRequest invalidEmailFormatRequest = AuthenticationRequest.builder()
+                .email("invalid-email-format")
+                .password("password123")
+                .build();
+
+        // When & Then
+        mockMvc.perform(post("/api/auth/authenticate")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(invalidEmailFormatRequest)))
+                .andExpect(status().isBadRequest());
+
+        verify(authenticationService, never()).authenticate(any(AuthenticationRequest.class));
+    }
+
+    @Test
+    @DisplayName("Should return 401 when user is not found")
+    void shouldReturn401WhenUserIsNotFound() throws Exception {
+        when(authenticationService.authenticate(any(AuthenticationRequest.class)))
+                .thenThrow(new UserNotFoundException("nonexistent@test.com"));
+
+        AuthenticationRequest nonExistentUserRequest = AuthenticationRequest.builder()
+                .email("nonexistent@test.com")
+                .password("password123")
+                .build();
+
+        try {
+            mockMvc.perform(post("/api/auth/authenticate")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(nonExistentUserRequest)));
+        } catch (Exception e) {
+            verify(authenticationService).authenticate(any(AuthenticationRequest.class));
+            assertThat(e).hasCauseInstanceOf(UserNotFoundException.class);
+            assertThat(e.getCause().getMessage()).contains("nonexistent@test.com");
+        }
+    }
+
+    @Test
+    @DisplayName("Should return 401 when credentials are invalid")
+    void shouldReturn401WhenCredentialsAreInvalid() throws Exception {
+        when(authenticationService.authenticate(any(AuthenticationRequest.class)))
+                .thenThrow(new InvalidCredentialsException());
+
+        AuthenticationRequest wrongPasswordRequest = AuthenticationRequest.builder()
+                .email("customer@test.com")
+                .password("wrongpassword")
+                .build();
+
+        try {
+            mockMvc.perform(post("/api/auth/authenticate")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(wrongPasswordRequest)));
+        } catch (Exception e) {
+            verify(authenticationService).authenticate(any(AuthenticationRequest.class));
+            assertThat(e).hasCauseInstanceOf(InvalidCredentialsException.class);
+            assertThat(e.getCause().getMessage()).isEqualTo("Invalid email or password");
+        }
     }
 } 

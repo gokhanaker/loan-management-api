@@ -4,6 +4,7 @@ import com.applab.loan_management.constants.Role;
 import com.applab.loan_management.dto.AuthenticationRequest;
 import com.applab.loan_management.dto.AuthenticationResponse;
 import com.applab.loan_management.dto.RegisterRequest;
+import com.applab.loan_management.dto.RegisterResponse;
 import com.applab.loan_management.entity.Customer;
 import com.applab.loan_management.exception.EmailAlreadyExistsException;
 import com.applab.loan_management.exception.InvalidCredentialsException;
@@ -14,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -25,7 +27,7 @@ public class AuthenticationService {
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
 
-    public AuthenticationResponse register(RegisterRequest request) {
+    public RegisterResponse register(RegisterRequest request) {
         // Check if email already exists
         if (customerRepository.existsByEmail(request.getEmail())) {
             throw new EmailAlreadyExistsException(request.getEmail());
@@ -62,8 +64,17 @@ public class AuthenticationService {
         // Generate JWT token using helper method
         String jwtToken = generateJwtToken(customer);
         
-        return AuthenticationResponse.builder()
+        return RegisterResponse.builder()
                 .token(jwtToken)
+                .message(String.format("User account created successfully with ID: %d", customer.getId()))
+                .userId(customer.getId())
+                .user(RegisterResponse.UserProfile.builder()
+                        .name(customer.getName())
+                        .surname(customer.getSurname())
+                        .email(customer.getEmail())
+                        .role(customer.getRole().name())
+                        .build())
+                .registrationTime(LocalDateTime.now())
                 .build();
     }
 
@@ -82,6 +93,8 @@ public class AuthenticationService {
         
         return AuthenticationResponse.builder()
                 .token(jwtToken)
+                .message(String.format("Successful login, %s!", customer.getName()))
+                .timestamp(LocalDateTime.now())
                 .build();
     }
 

@@ -3,6 +3,7 @@ package com.applab.loan_management.controller;
 import com.applab.loan_management.dto.AuthenticationRequest;
 import com.applab.loan_management.dto.AuthenticationResponse;
 import com.applab.loan_management.dto.RegisterRequest;
+import com.applab.loan_management.dto.RegisterResponse;
 import com.applab.loan_management.service.AuthenticationService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -20,7 +21,7 @@ public class AuthenticationController {
     private final AuthenticationService authenticationService;
 
     @PostMapping("/register")
-    public ResponseEntity<AuthenticationResponse> register(@Valid @RequestBody RegisterRequest request) {
+    public ResponseEntity<RegisterResponse> register(@Valid @RequestBody RegisterRequest request) {
         var response = authenticationService.register(request);
         return ResponseEntity.ok(response);
     }

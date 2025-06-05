@@ -29,8 +29,6 @@ public class LoanController {
     @PostMapping
     public ResponseEntity<CreateLoanResponse> createLoan(@Valid @RequestBody CreateLoanRequest request) {
         Loan loan = loanService.createLoan(request);
-        
-        // Use utility method for conversion
         CreateLoanResponse response = LoanMapperUtil.toCreateLoanResponse(loan);
         
         return ResponseEntity.ok(response);

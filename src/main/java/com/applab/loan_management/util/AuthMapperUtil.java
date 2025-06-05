@@ -13,23 +13,15 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * Utility class for authentication-related operations including DTO conversions and JWT token generation.
- * This class centralizes all authentication mapping logic to improve code maintainability and reusability.
+
+/* Utility class for authentication-related operations including DTO conversions 
+ * and JWT token generation.
  */
 public final class AuthMapperUtil {
 
-    private AuthMapperUtil() {
-        // Private constructor to prevent instantiation
-    }
+    private AuthMapperUtil() {}
 
-    /**
-     * Creates a Customer entity from RegisterRequest
-     *
-     * @param request the registration request
-     * @param passwordEncoder the password encoder service
-     * @return Customer entity ready to be saved
-     */
+    // Creates a Customer entity from RegisterRequest
     public static Customer createCustomerFromRequest(RegisterRequest request, PasswordEncoder passwordEncoder) {
         if (request.getRole() == Role.CUSTOMER) {
             // Create customer with credit fields
@@ -56,13 +48,8 @@ public final class AuthMapperUtil {
         }
     }
 
-    /**
-     * Converts a Customer entity to RegisterResponse DTO
-     *
-     * @param customer the customer entity to convert
-     * @param jwtToken the JWT token to include in the response
-     * @return RegisterResponse DTO
-     */
+    
+    // Converts a Customer entity to RegisterResponse DTO
     public static RegisterResponse toRegisterResponse(Customer customer, String jwtToken) {
         return RegisterResponse.builder()
                 .token(jwtToken)
@@ -78,13 +65,7 @@ public final class AuthMapperUtil {
                 .build();
     }
 
-    /**
-     * Converts a Customer entity to AuthenticationResponse DTO
-     *
-     * @param customer the customer entity to convert
-     * @param jwtToken the JWT token to include in the response
-     * @return AuthenticationResponse DTO
-     */
+    // Converts a Customer entity to AuthenticationResponse DTO
     public static AuthenticationResponse toAuthenticationResponse(Customer customer, String jwtToken) {
         return AuthenticationResponse.builder()
                 .token(jwtToken)
@@ -93,24 +74,13 @@ public final class AuthMapperUtil {
                 .build();
     }
 
-    /**
-     * Generates a JWT token with customer claims
-     *
-     * @param customer the customer entity to create token for
-     * @param jwtUtil the JWT utility service
-     * @return JWT token string
-     */
+    
+    // Generates a JWT token with customer claims
     public static String generateJwtToken(Customer customer, JwtUtil jwtUtil) {
         Map<String, Object> extraClaims = createCustomerClaims(customer);
         return jwtUtil.generateToken(extraClaims, new CustomerUserDetails(customer));
     }
 
-    /**
-     * Creates customer claims map for JWT token
-     *
-     * @param customer the customer entity
-     * @return map of claims to include in JWT token
-     */
     public static Map<String, Object> createCustomerClaims(Customer customer) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("role", customer.getRole().name());
@@ -119,23 +89,11 @@ public final class AuthMapperUtil {
         return claims;
     }
 
-    /**
-     * Generates a welcome message for registration
-     *
-     * @param customer the customer entity
-     * @return formatted welcome message
-     */
     public static String generateRegistrationMessage(Customer customer) {
         return String.format("User account created successfully with ID: %d", customer.getId());
     }
 
-    /**
-     * Generates a welcome message for authentication
-     *
-     * @param customer the customer entity
-     * @return formatted welcome message
-     */
     public static String generateAuthenticationMessage(Customer customer) {
-        return String.format("Successful login, %s!", customer.getId());
+        return String.format("Successful login with customer ID: %s!", customer.getId());
     }
 } 

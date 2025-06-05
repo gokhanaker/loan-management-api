@@ -1,6 +1,5 @@
 package com.applab.loan_management.service;
 
-import com.applab.loan_management.constants.Role;
 import com.applab.loan_management.dto.CreateLoanRequest;
 import com.applab.loan_management.dto.LoanListResponse;
 import com.applab.loan_management.dto.LoanInstallmentResponse;
@@ -28,7 +27,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -105,7 +103,6 @@ public class LoanService {
     }
 
     public List<LoanListResponse> listLoans(Long customerId, Boolean isPaid, Integer numberOfInstallments) {
-        // Validate customerId parameter
         if (customerId == null || customerId <= 0) {
             throw new InvalidParameterException("customerId", "must be a positive number");
         }
@@ -129,7 +126,6 @@ public class LoanService {
             }
         }
 
-        // Verify customer exists
         customerRepository.findById(customerId)
                 .orElseThrow(() -> new CustomerNotFoundException(customerId));
 
@@ -147,24 +143,20 @@ public class LoanService {
                 loans = loanRepository.findByCustomerId(customerId);
             }
         } catch (Exception ex) {
-            // Log the exception and rethrow as a more user-friendly message
             throw new RuntimeException("Failed to retrieve loans for customer ID: " + customerId, ex);
         }
 
-        // Convert to response DTOs using utility method
         return loans.stream()
                 .map(LoanMapperUtil::toLoanListResponse)
                 .collect(Collectors.toList());
     }
 
     public List<LoanInstallmentResponse> listLoanInstallments(Long loanId) {
-        // Validate loanId parameter
         if (loanId == null || loanId <= 0) {
             throw new InvalidParameterException("loanId", "must be a positive number");
         }
 
         try {
-            // Verify loan exists and fetch with installments
             Loan loan = loanRepository.findById(loanId)
                     .orElseThrow(() -> new LoanNotFoundException(loanId));
 
@@ -187,30 +179,24 @@ public class LoanService {
                 throw new LoanDataAccessException("No installments found for loan ID: " + loanId + ". This might indicate a data integrity issue.");
             }
 
-            // Convert to response DTOs using utility method
             return LoanMapperUtil.toLoanInstallmentResponseList(installments);
 
         } catch (LoanNotFoundException | InvalidParameterException | LoanDataAccessException | CustomerAccessDeniedException ex) {
-            // Re-throw our custom exceptions as-is
             throw ex;
         } catch (DataAccessException ex) {
-            // Handle Spring Data Access exceptions
             throw new LoanDataAccessException("Database error while retrieving loan installments for loan ID: " + loanId, ex);
         } catch (Exception ex) {
-            // Handle any other unexpected exceptions
             throw new LoanDataAccessException("Unexpected error while retrieving loan installments for loan ID: " + loanId, ex);
         }
     }
 
     @Transactional
     public PayLoanResponse payLoan(Long loanId, PayLoanRequest request) {
-        // Validate loanId parameter
         if (loanId == null || loanId <= 0) {
             throw new InvalidParameterException("loanId", "must be a positive number");
         }
 
         try {
-            // Verify loan exists and fetch with installments and customer
             Loan loan = loanRepository.findById(loanId)
                     .orElseThrow(() -> new LoanNotFoundException(loanId));
 
@@ -221,7 +207,6 @@ public class LoanService {
                 throw new CustomerAccessDeniedException(loanCustomerId, currentCustomerId);
             }
 
-            // Check if loan is already fully paid
             if (Boolean.TRUE.equals(loan.getIsPaid())) {
                 throw new LoanAlreadyPaidException(loanId);
             }
@@ -278,15 +263,12 @@ public class LoanService {
                 loan.setIsPaid(true);
             }
 
-            // Update customer's used credit limit
             Customer customer = loan.getCustomer();
             customer.setUsedCreditLimit(customer.getUsedCreditLimit().subtract(totalAmountSpent));
             customerRepository.save(customer);
 
-            // Save the loan (cascade will save installments)
             loanRepository.save(loan);
 
-            // Create response message
             String message = String.format("Successfully paid %d installment(s) for a total of %.2f", 
                     installmentsPaid, totalAmountSpent);
             
@@ -303,13 +285,10 @@ public class LoanService {
 
         } catch (LoanNotFoundException | InvalidParameterException | LoanAlreadyPaidException | 
                  InvalidPaymentAmountException | NoPayableInstallmentsException | CustomerAccessDeniedException ex) {
-            // Re-throw our custom exceptions as-is
             throw ex;
         } catch (DataAccessException ex) {
-            // Handle Spring Data Access exceptions
             throw new LoanDataAccessException("Database error while processing loan payment for loan ID: " + loanId, ex);
         } catch (Exception ex) {
-            // Handle any other unexpected exceptions
             throw new LoanDataAccessException("Unexpected error while processing loan payment for loan ID: " + loanId, ex);
         }
     }

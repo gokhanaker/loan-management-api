@@ -29,17 +29,15 @@ public class AuthenticationService {
             throw new EmailAlreadyExistsException(request.getEmail());
         }
 
-        // Create customer using utility method
         Customer customer = AuthMapperUtil.createCustomerFromRequest(request, passwordEncoder);
         customerRepository.save(customer);
 
-        // Generate JWT token and create response using utility methods
+        // Generate JWT token and create response
         String jwtToken = AuthMapperUtil.generateJwtToken(customer, jwtUtil);
         return AuthMapperUtil.toRegisterResponse(customer, jwtToken);
     }
 
     public AuthenticationResponse authenticate(AuthenticationRequest request) {
-        // Find customer by email
         Customer customer = customerRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new UserNotFoundException(request.getEmail()));
 
@@ -48,7 +46,7 @@ public class AuthenticationService {
             throw new InvalidCredentialsException();
         }
 
-        // Generate JWT token and create response using utility methods
+        // Generate JWT token and create response
         String jwtToken = AuthMapperUtil.generateJwtToken(customer, jwtUtil);
         return AuthMapperUtil.toAuthenticationResponse(customer, jwtToken);
     }

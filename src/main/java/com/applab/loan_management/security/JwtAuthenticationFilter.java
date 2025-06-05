@@ -55,7 +55,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 Role role = jwtUtil.extractRole(jwt);
                 
                 if (userId != null && role != null) {
-                    // Create a minimal Customer object for UserDetails (no DB call needed)
                     Customer customer = Customer.builder()
                             .id(userId)
                             .email(userEmail)

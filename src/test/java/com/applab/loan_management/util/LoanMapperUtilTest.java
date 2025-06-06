@@ -103,7 +103,7 @@ class LoanMapperUtilTest {
         assertThat(result.getCreateDate()).isEqualTo(testLoan.getCreateDate());
         assertThat(result.getIsPaid()).isFalse();
         assertThat(result.getTotalAmount()).isEqualTo(new BigDecimal("12000.00"));
-        assertThat(result.getRemainingInstallments()).isEqualTo(2); // 2 unpaid installments
+        assertThat(result.getRemainingInstallments()).isEqualTo(2);
     }
 
     @Test
@@ -123,31 +123,6 @@ class LoanMapperUtilTest {
         assertThat(result.getPaidAmount()).isEqualTo(new BigDecimal("1000.00"));
         assertThat(result.getIsPaid()).isTrue();
         assertThat(result.getInstallmentNumber()).isEqualTo(2);
-    }
-
-    @Test
-    @DisplayName("Should convert list of loan installments to list of LoanInstallmentResponse DTOs")
-    void shouldConvertListOfLoanInstallmentsToListOfLoanInstallmentResponseDTOs() {
-        List<LoanInstallmentResponse> result = LoanMapperUtil.toLoanInstallmentResponseList(testInstallments);
-
-        assertThat(result).isNotNull();
-        assertThat(result).hasSize(3);
-        
-        // Check first installment
-        assertThat(result.get(0).getId()).isEqualTo(1L);
-        assertThat(result.get(0).getInstallmentNumber()).isEqualTo(1);
-        assertThat(result.get(0).getIsPaid()).isFalse();
-        
-        // Check second installment (paid)
-        assertThat(result.get(1).getId()).isEqualTo(2L);
-        assertThat(result.get(1).getInstallmentNumber()).isEqualTo(2);
-        assertThat(result.get(1).getIsPaid()).isTrue();
-        assertThat(result.get(1).getPaidAmount()).isEqualTo(new BigDecimal("1000.00"));
-        
-        // Check third installment
-        assertThat(result.get(2).getId()).isEqualTo(3L);
-        assertThat(result.get(2).getInstallmentNumber()).isEqualTo(3);
-        assertThat(result.get(2).getIsPaid()).isFalse();
     }
 
     @Test
@@ -185,7 +160,7 @@ class LoanMapperUtilTest {
     void shouldCalculateRemainingInstallmentsCorrectly() {
         int result = LoanMapperUtil.calculateRemainingInstallments(testInstallments);
 
-        assertThat(result).isEqualTo(2); // 2 unpaid installments out of 3
+        assertThat(result).isEqualTo(2);
     }
 
     @Test

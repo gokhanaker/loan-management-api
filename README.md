@@ -195,7 +195,6 @@ Please check the `Loan_Management_API.postman_collection.json` file in the repo.
 
 ```http
 Authorization: Bearer <jwt-token>
-Content-Type: application/json
 ```
 
 ## 🗄️ Database Schema

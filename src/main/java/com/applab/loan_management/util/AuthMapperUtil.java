@@ -6,7 +6,7 @@ import com.applab.loan_management.dto.RegisterRequest;
 import com.applab.loan_management.dto.RegisterResponse;
 import com.applab.loan_management.entity.Customer;
 import com.applab.loan_management.security.JwtUtil;
-import com.applab.loan_management.service.CustomerUserDetails;
+import com.applab.loan_management.security.CustomerUserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.time.LocalDateTime;

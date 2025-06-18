@@ -1,7 +1,7 @@
 package com.applab.loan_management.security;
 
 import com.applab.loan_management.constants.Role;
-import com.applab.loan_management.service.CustomerUserDetails;
+import com.applab.loan_management.security.CustomerUserDetails;
 import com.applab.loan_management.entity.Customer;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;

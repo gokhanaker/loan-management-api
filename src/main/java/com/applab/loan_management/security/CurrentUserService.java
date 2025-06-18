@@ -1,7 +1,7 @@
-package com.applab.loan_management.service;
+package com.applab.loan_management.security;
 
 import com.applab.loan_management.constants.Role;
-import com.applab.loan_management.security.JwtUtil;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;

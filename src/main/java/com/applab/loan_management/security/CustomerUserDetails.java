@@ -1,4 +1,4 @@
-package com.applab.loan_management.service;
+package com.applab.loan_management.security;
 
 import com.applab.loan_management.entity.Customer;
 import org.springframework.security.core.GrantedAuthority;

@@ -16,6 +16,7 @@ import com.applab.loan_management.exception.InvalidParameterException;
 import com.applab.loan_management.exception.LoanAlreadyPaidException;
 import com.applab.loan_management.repository.CustomerRepository;
 import com.applab.loan_management.repository.LoanRepository;
+import com.applab.loan_management.security.CurrentUserService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

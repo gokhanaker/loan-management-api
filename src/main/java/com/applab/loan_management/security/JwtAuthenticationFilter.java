@@ -51,12 +51,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             try {
                 // Extract user information from JWT claims instead of database lookup
-                Long userId = jwtUtil.extractUserId(jwt);
+                Long customerId = jwtUtil.extractCustomerId(jwt);
                 Role role = jwtUtil.extractRole(jwt);
                 
-                if (userId != null && role != null) {
+                if (customerId != null && role != null) {
                     Customer customer = Customer.builder()
-                            .id(userId)
+                            .id(customerId)
                             .email(userEmail)
                             .role(role)
                             .build();

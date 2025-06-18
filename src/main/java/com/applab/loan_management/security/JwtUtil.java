@@ -39,11 +39,6 @@ public class JwtUtil {
         return customerIdInt != null ? customerIdInt.longValue() : null;
     }
 
-    public Long extractUserId(String token) {
-        Integer userIdInt = extractClaim(token, claims -> claims.get("userId", Integer.class));
-        return userIdInt != null ? userIdInt.longValue() : null;
-    }
-
     public <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
         final Claims claims = extractAllClaims(token);
         return claimsResolver.apply(claims);

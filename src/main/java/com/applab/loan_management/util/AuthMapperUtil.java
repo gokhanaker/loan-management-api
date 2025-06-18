@@ -84,7 +84,6 @@ public final class AuthMapperUtil {
     public static Map<String, Object> createCustomerClaims(Customer customer) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("role", customer.getRole().name());
-        claims.put("userId", customer.getId());
         claims.put("customerId", customer.getId());
         return claims;
     }

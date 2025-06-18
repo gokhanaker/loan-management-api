@@ -163,7 +163,6 @@ class AuthMapperUtilTest {
         verify(jwtUtil).generateToken(argThat(claims -> {
             Map<String, Object> claimsMap = (Map<String, Object>) claims;
             return "CUSTOMER".equals(claimsMap.get("role")) &&
-                   Long.valueOf(1L).equals(claimsMap.get("userId")) &&
                    Long.valueOf(1L).equals(claimsMap.get("customerId"));
         }), any(CustomerUserDetails.class));
     }
@@ -174,9 +173,8 @@ class AuthMapperUtilTest {
         Map<String, Object> result = AuthMapperUtil.createCustomerClaims(testCustomer);
 
         assertThat(result).isNotNull();
-        assertThat(result).hasSize(3);
+        assertThat(result).hasSize(2);
         assertThat(result.get("role")).isEqualTo("CUSTOMER");
-        assertThat(result.get("userId")).isEqualTo(1L);
         assertThat(result.get("customerId")).isEqualTo(1L);
     }
 

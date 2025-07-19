@@ -54,9 +54,9 @@ The application will start on `http://localhost:8080`
 
 ### Database Access (Development)
 
-H2 in memory database is used for development purpose. For this reason data records in db will disappear when app stops
+H2 in memory database is used for development purpose. For this reason data records in db will disappear when app stops. To view temporary H2 database
 
 - **H2 Console**: http://localhost:8080/h2-console
-- **JDBC URL**: `jdbc:h2:mem:testdb`
+- **JDBC URL**: `jdbc:h2:mem:loandb`
 - **Username**: `sa`
-- **Password**: (leave empty)
+- **Password**: `password`

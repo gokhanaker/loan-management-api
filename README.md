@@ -1,10 +1,10 @@
-# 🏦 Loan Management System
+# 🏦 Loan Management Service
 
-A Spring Boot REST API for managing bank loans with JWT authentication, role-based authorization, and complete loan lifecycle management.
+A Spring Boot service for managing bank loans with JWT authentication, role-based authorization, and complete loan lifecycle management.
 
 ## 🚀 Overview
 
-This project implements a complete loan management system for a bank, allowing customers to apply for loans and make payments while providing administrators with full oversight capabilities.
+This project implements a complete loan management service for a bank, allowing customers to apply for loans and make payments while providing administrators with full oversight capabilities.
 
 ## ✨ Features
 
@@ -37,8 +37,8 @@ This project implements a complete loan management system for a bank, allowing c
 
 ```bash
 # Clone the repository
-git clone https://github.com/gokhanaker/loan-management-api
-cd loan-management-api
+git clone https://github.com/gokhanaker/loan-management-service
+cd loan-management-service
 
 # Build the project
 ./mvnw clean compile

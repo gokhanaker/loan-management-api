@@ -1,0 +1,330 @@
+{
+	"info": {
+		"_postman_id": "loan-management-service",
+		"name": "Loan Management Service",
+		"description": "API collection for the Loan Management Service with authentication and loan operations",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Authentication",
+			"item": [
+				{
+					"name": "Register Customer",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"customer@example.com\",\n    \"password\": \"password123\",\n    \"role\": \"CUSTOMER\",\n    \"name\": \"John\",\n    \"surname\": \"Doe\",\n    \"creditLimit\": 10000.00,\n    \"usedCreditLimit\": 0.00\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/register",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"register"
+							]
+						},
+						"description": "Register a new customer with credit limit information"
+					},
+					"response": []
+				},
+				{
+					"name": "Register Admin",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"admin@example.com\",\n    \"password\": \"admin123\",\n    \"role\": \"ADMIN\",\n    \"name\": \"Admin\",\n    \"surname\": \"User\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/register",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"register"
+							]
+						},
+						"description": "Register a new admin user (no credit limit required)"
+					},
+					"response": []
+				},
+				{
+					"name": "Authenticate",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const response = pm.response.json();",
+									"    pm.environment.set('authToken', response.token);",
+									"    pm.environment.set('customerId', response.customerId);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"customer@example.com\",\n    \"password\": \"password123\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/authenticate",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"authenticate"
+							]
+						},
+						"description": "Authenticate user and get JWT token. The token will be automatically saved to environment variables."
+					},
+					"response": []
+				}
+			],
+			"description": "Authentication endpoints for user registration and login"
+		},
+		{
+			"name": "Loans",
+			"item": [
+				{
+					"name": "Create Loan",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"customerId\": {{customerId}},\n    \"amount\": 5000.00,\n    \"interestRate\": 0.15,\n    \"numberOfInstallments\": 12\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/loans",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"loans"
+							]
+						},
+						"description": "Create a new loan for a customer. Requires authentication. Valid installment options: 6, 9, 12, 24. Interest rate must be between 0.1 and 0.5."
+					},
+					"response": []
+				},
+				{
+					"name": "List Loans",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/loans?customerId={{customerId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"loans"
+							],
+							"query": [
+								{
+									"key": "customerId",
+									"value": "{{customerId}}",
+									"description": "Customer ID (required)"
+								}
+							]
+						},
+						"description": "List all loans for a customer. Requires authentication."
+					},
+					"response": []
+				},
+				{
+					"name": "List Loans with Filters",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/loans?customerId={{customerId}}&isPaid=false&numberOfInstallments=12",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"loans"
+							],
+							"query": [
+								{
+									"key": "customerId",
+									"value": "{{customerId}}",
+									"description": "Customer ID (required)"
+								},
+								{
+									"key": "isPaid",
+									"value": "false",
+									"description": "Filter by payment status (optional)"
+								},
+								{
+									"key": "numberOfInstallments",
+									"value": "12",
+									"description": "Filter by number of installments (optional)"
+								}
+							]
+						},
+						"description": "List loans with optional filters for payment status and number of installments."
+					},
+					"response": []
+				},
+				{
+					"name": "List Loan Installments",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/loans/{{loanId}}/installments",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"loans",
+								"{{loanId}}",
+								"installments"
+							]
+						},
+						"description": "List all installments for a specific loan. Requires authentication and valid loan ID."
+					},
+					"response": []
+				},
+				{
+					"name": "Pay Loan",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"amount\": 500.00\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/loans/{{loanId}}/pay",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"loans",
+								"{{loanId}}",
+								"pay"
+							]
+						},
+						"description": "Make a payment towards a loan. Requires authentication and valid loan ID. Amount must be greater than 0."
+					},
+					"response": []
+				}
+			],
+			"description": "Loan management endpoints for creating, listing, and paying loans"
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:8080",
+			"type": "string"
+		},
+		{
+			"key": "authToken",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "customerId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "loanId",
+			"value": "",
+			"type": "string"
+		}
+	]
+} 
